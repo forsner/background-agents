@@ -1,6 +1,7 @@
 import { isValidTimeZone, validateAutomationCron } from "@open-inspect/shared/cron";
 import {
   conditionRegistry,
+  DEFAULT_SLACK_EVENT_TYPE,
   hasSlackActorIncludeList,
   hasValidSlackChannelCondition,
   triggerSources,
@@ -282,9 +283,8 @@ export function requiresRepositoryContext(triggerType: AutomationTriggerType): b
   return triggerType === "github_event" || triggerType === "linear_event";
 }
 
-/** Slack automations fired only on messages before reactions existed. */
 function defaultEventType(triggerType: AutomationTriggerType | undefined): string {
-  return triggerType === "slack_event" ? "message.posted" : "";
+  return triggerType === "slack_event" ? DEFAULT_SLACK_EVENT_TYPE : "";
 }
 
 export function requiresEventType(triggerType: AutomationTriggerType): boolean {

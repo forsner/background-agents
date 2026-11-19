@@ -9,6 +9,7 @@ import {
 } from "@open-inspect/shared/cron";
 import {
   conditionRegistry,
+  DEFAULT_SLACK_EVENT_TYPE,
   normalizeSlackChannelConditions,
   validateTriggerConditions,
   type TriggerConfig,
@@ -244,6 +245,10 @@ async function handleCreateAutomation(
     }
   }
 
+  // Clients that predate Slack event types keep creating message automations.
+  if (triggerType === "slack_event" && body.eventType === undefined) {
+    body.eventType = DEFAULT_SLACK_EVENT_TYPE;
+  }
   const eventTypeError = getTriggerEventTypeError(triggerType, body.eventType);
   if (eventTypeError) return error(eventTypeError, 400);
   const triggerOptionsError = getTriggerOptionsError(triggerType, body.triggerConfig);
@@ -767,8 +772,10 @@ async function handleUpdateAutomation(
     updateFields.event_type = body.eventType;
   }
 
-  const effectiveEventType =
-    body.eventType !== undefined ? body.eventType : (existing.event_type ?? undefined);
+  const storedEventType =
+    existing.event_type ??
+    (existingTriggerType === "slack_event" ? DEFAULT_SLACK_EVENT_TYPE : undefined);
+  const effectiveEventType = body.eventType !== undefined ? body.eventType : storedEventType;
   const eventTypeError = getTriggerEventTypeError(existingTriggerType, effectiveEventType);
   if (eventTypeError) return error(eventTypeError, 400);
   const triggerOptionsError = getTriggerOptionsError(existingTriggerType, body.triggerConfig);

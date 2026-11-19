@@ -274,7 +274,6 @@ describe("automation create route", () => {
           name: "Slack triage",
           instructions: "Triage the message",
           triggerType: "slack_event",
-          eventType: "message.posted",
           triggerConfig: {
             conditions: [{ type: "slack_channel", operator: "any_of", value: [" C1 "] }],
           },
@@ -284,6 +283,8 @@ describe("automation create route", () => {
       expect(res.status).toBe(201);
       expect(mockStore.bindAutomationInsert).toHaveBeenCalledWith(
         expect.objectContaining({
+          // Omitted eventType keeps the pre-reaction meaning.
+          event_type: "message.posted",
           trigger_config: JSON.stringify({
             conditions: [{ type: "slack_channel", operator: "any_of", value: ["C1"] }],
           }),

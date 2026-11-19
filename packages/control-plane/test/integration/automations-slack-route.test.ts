@@ -162,6 +162,18 @@ describe("POST /automations — slack_event validation (integration)", () => {
     expect(res.status).not.toBe(400);
   });
 
+  it("accepts a slack_event without an eventType, as clients before reaction triggers send", async () => {
+    const res = await postAutomation(
+      createBody({
+        eventType: undefined,
+        triggerConfig: {
+          conditions: [{ type: "slack_channel", operator: "any_of", value: ["C1"] }],
+        },
+      })
+    );
+    expect(res.status).not.toBe(400);
+  });
+
   it("rejects slack trigger options on a non-slack trigger (400)", async () => {
     const res = await postAutomation(
       createBody({
@@ -281,6 +293,21 @@ describe("PUT /automations/:id — slack_event validation (integration)", () => 
     expect(response.status).toBe(409);
     expect(await response.json()).toMatchObject({ code: "channel_team_mismatch" });
     expect((await store.getById(auto.id))?.name).toBe(auto.name);
+  });
+
+  it("updates a Slack automation stored without an event type", async () => {
+    const store = new AutomationStore(env.DB);
+    const auto = makeSlackAutomation({
+      event_type: null,
+      trigger_config: JSON.stringify({
+        conditions: [{ type: "slack_channel", operator: "any_of", value: ["C1"] }],
+      }),
+    });
+    await store.create(auto);
+
+    const response = await putAutomation(auto.id, { name: "Renamed" });
+    expect(response.status).toBe(200);
+    expect((await store.getById(auto.id))?.name).toBe("Renamed");
   });
 
   it("rejects a non-array conditions on update with 400, not 500", async () => {

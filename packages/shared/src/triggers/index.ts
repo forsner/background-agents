@@ -105,6 +105,7 @@ export {
   slackEmojiName,
   buildSlackContextBlock,
   slackChannelLabel,
+  DEFAULT_SLACK_EVENT_TYPE,
   SLACK_TEXT_MAX_LENGTH,
   REGEX_PATTERN_MAX_LENGTH,
   ALLOWED_REGEX_FLAGS,

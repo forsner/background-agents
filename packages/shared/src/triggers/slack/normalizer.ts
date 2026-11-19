@@ -4,6 +4,12 @@
 
 import type { SlackAutomationEvent } from "../types";
 
+/**
+ * Event type of a Slack automation that names none: every Slack automation fired
+ * on messages before reaction triggers existed.
+ */
+export const DEFAULT_SLACK_EVENT_TYPE = "message.posted";
+
 /** Max length of message text retained for matching + context (characters). */
 export const SLACK_TEXT_MAX_LENGTH = 8 * 1024;
 
@@ -97,7 +103,7 @@ export function normalizeSlackEvent(
 
   return {
     source: "slack",
-    eventType: "message.posted",
+    eventType: DEFAULT_SLACK_EVENT_TYPE,
     triggerKey: `slack:msg:${input.channel}:${input.ts}`,
     concurrencyKey: `slack:${input.channel}:${input.thread_ts ?? input.ts}`,
     channelId: input.channel,

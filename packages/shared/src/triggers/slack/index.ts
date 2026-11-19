@@ -3,6 +3,7 @@
  */
 
 import type { TriggerSourceDefinition } from "../types";
+import { DEFAULT_SLACK_EVENT_TYPE } from "./normalizer";
 
 export {
   normalizeSlackEvent,
@@ -10,6 +11,7 @@ export {
   slackEmojiName,
   buildSlackContextBlock,
   slackChannelLabel,
+  DEFAULT_SLACK_EVENT_TYPE,
   SLACK_TEXT_MAX_LENGTH,
 } from "./normalizer";
 export type {
@@ -38,7 +40,7 @@ export const slackSource: TriggerSourceDefinition = {
   supportsEventTypes: true,
   eventTypes: [
     {
-      eventType: "message.posted",
+      eventType: DEFAULT_SLACK_EVENT_TYPE,
       displayName: "Message posted",
       description: "A message is posted in a watched channel",
     },
