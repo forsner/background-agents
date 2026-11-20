@@ -1,4 +1,5 @@
 import {
+  DEFAULT_SLACK_EVENT_TYPE,
   matchesConditions,
   conditionRegistry,
   type SlackAutomationEvent,
@@ -57,26 +58,29 @@ export class SlackEventHandler {
     };
 
     for (const automation of candidates) {
-      // A reaction never steers or starts a message automation, and vice versa.
-      if (automation.event_type !== event.eventType) continue;
       const now = deps.clock.now();
       const config = readTriggerConfig(automation);
       // Checked ahead of continuity, so a bot's reply cannot reach the session of
       // an automation that has not opted in to bot messages either.
       if (event.botId !== undefined && !deps.bots.accepts(config)) continue;
 
-      // A reply need not repeat the keyword that started the original session.
+      // A reply need not repeat the keyword that started the original session,
+      // and continues a reaction-started session too. A reaction never steers.
       // A missing or refusing session falls through to new-trigger evaluation.
-      const outcome = await deps.continuity.continueSession(
-        automation,
-        event.concurrencyKey,
-        now,
-        policy
-      );
-      if (outcome.kind === "steered" || outcome.kind === "skipped") {
-        recordContinuation(summary, outcome);
-        continue;
+      if (event.eventType !== "reaction.added") {
+        const outcome = await deps.continuity.continueSession(
+          automation,
+          event.concurrencyKey,
+          now,
+          policy
+        );
+        if (outcome.kind === "steered" || outcome.kind === "skipped") {
+          recordContinuation(summary, outcome);
+          continue;
+        }
       }
+      // A new firing needs the automation's own event type.
+      if ((automation.event_type ?? DEFAULT_SLACK_EVENT_TYPE) !== event.eventType) continue;
 
       if (!config) {
         deps.log.error("Skipped automation with invalid stored trigger fields", {

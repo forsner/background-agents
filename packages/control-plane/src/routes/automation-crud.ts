@@ -10,7 +10,7 @@ import {
 import {
   conditionRegistry,
   DEFAULT_SLACK_EVENT_TYPE,
-  normalizeSlackChannelConditions,
+  normalizeSlackConditions,
   validateTriggerConditions,
   type TriggerConfig,
 } from "@open-inspect/shared/triggers";
@@ -271,7 +271,7 @@ async function handleCreateAutomation(
     if (slackError) return error(slackError, 400);
     body.triggerConfig = {
       ...body.triggerConfig!,
-      conditions: normalizeSlackChannelConditions(body.triggerConfig!.conditions),
+      conditions: normalizeSlackConditions(body.triggerConfig!.conditions),
     };
     if (
       !(await new SlackChannelStore(ctx.db).hasCompatibleBindings(
@@ -798,12 +798,20 @@ async function handleUpdateAutomation(
       400
     );
   }
-  if (body.triggerConfig && existingTriggerType === "slack_event") {
-    const slackError = validateSlackTriggerConfig(body.triggerConfig, effectiveEventType);
+  if (
+    existingTriggerType === "slack_event" &&
+    (body.triggerConfig || body.eventType !== undefined)
+  ) {
+    const slackError = validateSlackTriggerConfig(
+      body.triggerConfig ?? existingTriggerConfig,
+      effectiveEventType
+    );
     if (slackError) return error(slackError, 400);
+  }
+  if (body.triggerConfig && existingTriggerType === "slack_event") {
     body.triggerConfig = {
       ...body.triggerConfig,
-      conditions: normalizeSlackChannelConditions(body.triggerConfig.conditions),
+      conditions: normalizeSlackConditions(body.triggerConfig.conditions),
     };
     triggerConfigToValidate = body.triggerConfig;
   }

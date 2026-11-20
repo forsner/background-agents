@@ -98,7 +98,7 @@ export {
   slackSource,
   hasValidSlackChannelCondition,
   hasSlackActorIncludeList,
-  normalizeSlackChannelConditions,
+  normalizeSlackConditions,
   parseSlackChannelCondition,
   normalizeSlackEvent,
   normalizeSlackReaction,

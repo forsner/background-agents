@@ -9,7 +9,7 @@
 
 import type { ConditionRegistry } from "../conditions";
 import type { AutomationEvent, TextMatchValue, TriggerCondition } from "../types";
-import { SLACK_TEXT_MAX_LENGTH, slackEmojiName } from "./normalizer";
+import { normalizeSlackEmoji, SLACK_TEXT_MAX_LENGTH } from "./normalizer";
 
 type SlackChannelCondition = Extract<TriggerCondition, { type: "slack_channel" }>;
 
@@ -110,11 +110,12 @@ export function hasSlackActorIncludeList(conditions: TriggerCondition[]): boolea
   );
 }
 
-/** Normalize validated Slack Channel conditions before persistence. */
-export function normalizeSlackChannelConditions(
-  conditions: TriggerCondition[]
-): TriggerCondition[] {
+/** Normalize validated Slack Channel and Reaction conditions before persistence. */
+export function normalizeSlackConditions(conditions: TriggerCondition[]): TriggerCondition[] {
   return conditions.map((condition) => {
+    if (condition.type === "slack_reaction") {
+      return { ...condition, value: [...new Set(condition.value.map(normalizeSlackEmoji))] };
+    }
     if (condition.type !== "slack_channel") return condition;
     const parsed = parseSlackChannelCondition(condition);
     return parsed.success ? parsed.condition : condition;
@@ -215,7 +216,7 @@ export const slackConditions = {
       if (event.source !== "slack") return true;
       if (!event.reaction) return false;
       const name = event.reaction.name;
-      return c.value.some((emoji) => slackEmojiName(emoji.replace(/^:|:$/g, "")) === name);
+      return c.value.some((emoji) => normalizeSlackEmoji(emoji) === name);
     },
   },
 } satisfies Partial<ConditionRegistry>;

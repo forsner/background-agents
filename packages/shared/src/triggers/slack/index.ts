@@ -24,7 +24,7 @@ export {
   slackConditions,
   hasValidSlackChannelCondition,
   hasSlackActorIncludeList,
-  normalizeSlackChannelConditions,
+  normalizeSlackConditions,
   parseSlackChannelCondition,
   REGEX_PATTERN_MAX_LENGTH,
   ALLOWED_REGEX_FLAGS,

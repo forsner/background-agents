@@ -174,8 +174,29 @@ describe("Slack event ownership", () => {
       eventType: "reaction.added",
       reaction: { name: "ticket", eventTs: "3" },
     });
-    expect(deps.continuity.continueSession).toHaveBeenCalledTimes(1);
-    expect(deps.continuity.continueSession.mock.calls[0]![0].id).toBe("reactions");
+    expect(deps.continuity.continueSession).not.toHaveBeenCalled();
+    expect(deps.invocations.start).toHaveBeenCalledTimes(1);
+    expect(deps.invocations.start.mock.calls[0]![0].automation.id).toBe("reactions");
+  });
+
+  it("lets a thread reply continue a session that a reaction started", async () => {
+    const deps = slackHarness();
+    deps.channels.getSlackAutomationsForChannel.mockResolvedValue([
+      { ...automation, id: "reactions", trigger_type: "slack_event", event_type: "reaction.added" },
+    ]);
+    deps.continuity.continueSession.mockResolvedValue({ kind: "steered", invocationId: "inv-1" });
+    await expect(new SlackEventHandler(deps).handle(slackEvent)).resolves.toMatchObject({
+      steered: 1,
+    });
+    expect(deps.invocations.start).not.toHaveBeenCalled();
+  });
+
+  it("treats a stored NULL event type as message.posted", async () => {
+    const deps = slackHarness();
+    deps.channels.getSlackAutomationsForChannel.mockResolvedValue([
+      { ...automation, trigger_type: "slack_event", event_type: null },
+    ]);
+    await new SlackEventHandler(deps).handle(slackEvent);
     expect(deps.invocations.start).toHaveBeenCalledTimes(1);
   });
 

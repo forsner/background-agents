@@ -3,7 +3,7 @@ import { matchesConditions, validateConditions } from "../conditions";
 import {
   hasSlackActorIncludeList,
   hasValidSlackChannelCondition,
-  normalizeSlackChannelConditions,
+  normalizeSlackConditions,
   parseSlackChannelCondition,
 } from "./conditions";
 import type { TriggerCondition } from "../types";
@@ -214,9 +214,7 @@ describe("validateConditions (slack)", () => {
       },
     });
     expect(
-      normalizeSlackChannelConditions([
-        { type: "slack_channel", operator: "any_of", value: [" C1 "] },
-      ])
+      normalizeSlackConditions([{ type: "slack_channel", operator: "any_of", value: [" C1 "] }])
     ).toEqual([{ type: "slack_channel", operator: "any_of", value: ["C1"] }]);
   });
 
@@ -415,6 +413,24 @@ describe("slack_reaction condition", () => {
   it("matches a listed emoji, with or without colons", () => {
     expect(match(condition, reacted("ticket"))).toBe(true);
     expect(match(condition, reacted("bug"))).toBe(true);
+  });
+
+  it("matches emoji regardless of case, spaces and skin tone", () => {
+    const loose: TriggerCondition = {
+      type: "slack_reaction",
+      operator: "any_of",
+      value: [" :Ticket: "],
+    };
+    expect(match(loose, reacted("ticket"))).toBe(true);
+    expect(
+      normalizeSlackConditions([
+        {
+          type: "slack_reaction",
+          operator: "any_of",
+          value: [" :Ticket: ", "ticket", "+1::skin-tone-2"],
+        },
+      ])
+    ).toEqual([{ type: "slack_reaction", operator: "any_of", value: ["ticket", "+1"] }]);
   });
 
   it("rejects other emoji and plain messages", () => {

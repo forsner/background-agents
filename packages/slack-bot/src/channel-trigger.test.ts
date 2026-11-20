@@ -441,6 +441,16 @@ describe("reaction automation triggers (POST /events)", () => {
     expect(mockAddReaction).toHaveBeenCalledWith("xoxb-test", "C123", "1700000000.000100", "eyes");
   });
 
+  it("acknowledges a reaction on a file without forwarding it", async () => {
+    const env = makeEnv({ watched: ["C123"] });
+    const ctx = makeCtx();
+    const res = await app.fetch(reactionRequest({ item: { type: "file", file: "F1" } }), env, ctx);
+    await flushWaitUntil(ctx);
+    expect(res.status).toBe(200);
+    expect(forwardsFor(env)).toHaveLength(0);
+    expect(mockGetMessage).not.toHaveBeenCalled();
+  });
+
   it("ignores the bot's own reactions and unwatched channels", async () => {
     const env = makeEnv({ watched: ["C123"] });
     const ctx = makeCtx();

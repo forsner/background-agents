@@ -145,6 +145,11 @@ export function slackEmojiName(reaction: string): string {
   return reaction.split("::")[0]!;
 }
 
+/** ` :Ticket: ` → `ticket`, the form Slack reports reactions in. */
+export function normalizeSlackEmoji(emoji: string): string {
+  return slackEmojiName(emoji.trim().replace(/^:|:$/g, "").trim().toLowerCase());
+}
+
 /**
  * Normalize a reaction on a channel message into a `reaction.added`
  * event. The reacted-to message is the event's message, so replies under it

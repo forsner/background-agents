@@ -310,6 +310,20 @@ describe("PUT /automations/:id — slack_event validation (integration)", () => 
     expect((await store.getById(auto.id))?.name).toBe("Renamed");
   });
 
+  it("rejects switching to reaction.added without a slack_reaction condition (400)", async () => {
+    const store = new AutomationStore(env.DB);
+    const auto = makeSlackAutomation({
+      trigger_config: JSON.stringify({
+        conditions: [{ type: "slack_channel", operator: "any_of", value: ["C1"] }],
+      }),
+    });
+    await store.create(auto);
+
+    const response = await putAutomation(auto.id, { eventType: "reaction.added" });
+    expect(response.status).toBe(400);
+    expect((await store.getById(auto.id))?.event_type).toBe(auto.event_type);
+  });
+
   it("rejects a non-array conditions on update with 400, not 500", async () => {
     const store = new AutomationStore(env.DB);
     const auto = makeSlackAutomation();

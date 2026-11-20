@@ -98,7 +98,7 @@ export async function handleReactionTrigger(
   event: {
     user?: string;
     reaction?: string;
-    item?: { type: string; channel: string; ts: string };
+    item?: { type: string; channel?: string; ts?: string };
     event_ts?: string;
   },
   env: Env,
@@ -106,6 +106,8 @@ export async function handleReactionTrigger(
 ): Promise<void> {
   const { user, reaction, item, event_ts: eventTs } = event;
   if (!user || !reaction || !eventTs || item?.type !== "message") return;
+  const { channel, ts } = item;
+  if (!channel || !ts) return;
 
   const identity = await getBotIdentity(env, traceId);
   if (!identity) {
@@ -115,14 +117,14 @@ export async function handleReactionTrigger(
   if (user === identity.userId) return;
 
   const watched = await getWatchedChannels(env, traceId);
-  if (!watched.has(item.channel)) return;
+  if (!watched.has(channel)) return;
 
-  const lookup = await getMessage(env.SLACK_BOT_TOKEN, item.channel, item.ts);
+  const lookup = await getMessage(env.SLACK_BOT_TOKEN, channel, ts);
   if (!lookup.ok || !lookup.message) {
     log.warn("slack_trigger.reaction_message", {
       trace_id: traceId,
-      channel_id: item.channel,
-      message_ts: item.ts,
+      channel_id: channel,
+      message_ts: ts,
       slack_error: lookup.ok ? "message_not_found" : lookup.error,
     });
     return;
@@ -131,7 +133,7 @@ export async function handleReactionTrigger(
 
   const normalized = normalizeSlackReaction(
     {
-      channel: item.channel,
+      channel,
       user,
       reaction,
       eventTs,
@@ -143,7 +145,7 @@ export async function handleReactionTrigger(
         user: message.bot_id ? undefined : message.user,
       },
     },
-    await fetchChannelMeta(env, item.channel, item.ts)
+    await fetchChannelMeta(env, channel, ts)
   );
   if (!normalized) return;
 
