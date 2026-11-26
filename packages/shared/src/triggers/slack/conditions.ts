@@ -114,6 +114,8 @@ export function hasSlackActorIncludeList(conditions: TriggerCondition[]): boolea
 export function normalizeSlackConditions(conditions: TriggerCondition[]): TriggerCondition[] {
   return conditions.map((condition) => {
     if (condition.type === "slack_reaction") {
+      // Malformed values stay as they are for validation to reject.
+      if (!isNonEmptyStringArray(condition.value)) return condition;
       return { ...condition, value: [...new Set(condition.value.map(normalizeSlackEmoji))] };
     }
     if (condition.type !== "slack_channel") return condition;

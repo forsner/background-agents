@@ -7,7 +7,13 @@
  * path stays cheap.
  */
 
-import { addReaction, getChannelInfo, getMessage, getPermalink } from "@open-inspect/shared/slack";
+import {
+  addReaction,
+  getChannelInfo,
+  getMessage,
+  getPermalink,
+  getUserInfo,
+} from "@open-inspect/shared/slack";
 import {
   normalizeSlackEvent,
   normalizeSlackReaction,
@@ -119,6 +125,20 @@ export async function handleReactionTrigger(
   const watched = await getWatchedChannels(env, traceId);
   if (!watched.has(channel)) return;
 
+  // `reaction_added` has no bot marker, so look the reactor up. A bot's reaction
+  // carries its bot id to face the same opt-in gate and hourly limit as its posts.
+  const reactor = await getUserInfo(env.SLACK_BOT_TOKEN, user);
+  if (!reactor.ok) {
+    log.warn("slack_trigger.reaction_reactor", {
+      trace_id: traceId,
+      channel_id: channel,
+      user_id: user,
+      slack_error: reactor.error,
+    });
+    return;
+  }
+  const botId = reactor.user.is_bot ? (reactor.user.profile?.bot_id ?? user) : undefined;
+
   const lookup = await getMessage(env.SLACK_BOT_TOKEN, channel, ts);
   if (!lookup.ok || !lookup.message) {
     log.warn("slack_trigger.reaction_message", {
@@ -135,6 +155,7 @@ export async function handleReactionTrigger(
     {
       channel,
       user,
+      botId,
       reaction,
       eventTs,
       message: {

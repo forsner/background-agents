@@ -708,8 +708,10 @@ const slackUserSchema = z.object({
   id: z.string(),
   name: z.string(),
   real_name: z.string().optional(),
+  is_bot: z.boolean().optional(),
   profile: z
     .object({
+      bot_id: z.string().optional(),
       display_name: z.string().optional(),
       real_name: z.string().optional(),
       email: z.string().optional(),

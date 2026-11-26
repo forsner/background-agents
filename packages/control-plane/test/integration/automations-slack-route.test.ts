@@ -174,6 +174,21 @@ describe("POST /automations — slack_event validation (integration)", () => {
     expect(res.status).not.toBe(400);
   });
 
+  it("rejects a reaction emoji that normalizes to nothing (400)", async () => {
+    const res = await postAutomation(
+      createBody({
+        eventType: "reaction.added",
+        triggerConfig: {
+          conditions: [
+            { type: "slack_channel", operator: "any_of", value: ["C1"] },
+            { type: "slack_reaction", operator: "any_of", value: [":"] },
+          ],
+        },
+      })
+    );
+    expect(res.status).toBe(400);
+  });
+
   it("rejects slack trigger options on a non-slack trigger (400)", async () => {
     const res = await postAutomation(
       createBody({

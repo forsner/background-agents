@@ -133,8 +133,10 @@ export function normalizeSlackEvent(
 /** The Slack `reaction_added` fields plus the reacted-to message. */
 export interface SlackReactionInput {
   channel: string;
-  /** The person who reacted. */
+  /** Who reacted. */
   user: string;
+  /** The reactor's bot id, when a bot reacted. */
+  botId?: string;
   reaction: string;
   eventTs: string;
   message: { ts: string; thread_ts?: string; text: string; user?: string };
@@ -182,6 +184,7 @@ export function normalizeSlackReaction(
     threadTs,
     ts: message.ts,
     actorUserId: input.user,
+    botId: input.botId,
     text,
     reaction,
     contextBlock: buildSlackContextBlock({

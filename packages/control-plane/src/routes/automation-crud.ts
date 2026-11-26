@@ -275,6 +275,14 @@ async function handleCreateAutomation(
   const triggerOptionsError = getTriggerOptionsError(triggerType, body.triggerConfig);
   if (triggerOptionsError) return error(triggerOptionsError, 400);
 
+  // Normalize first so the stored emoji and channel values are the ones validated.
+  if (triggerType === "slack_event" && body.triggerConfig) {
+    body.triggerConfig = {
+      ...body.triggerConfig,
+      conditions: normalizeSlackConditions(body.triggerConfig.conditions),
+    };
+  }
+
   // Validate conditions
   if (body.triggerConfig) {
     const conditionErrors = validateTriggerConditions(
@@ -290,10 +298,6 @@ async function handleCreateAutomation(
   if (triggerType === "slack_event") {
     const slackError = validateSlackTriggerConfig(body.triggerConfig, body.eventType);
     if (slackError) return error(slackError, 400);
-    body.triggerConfig = {
-      ...body.triggerConfig!,
-      conditions: normalizeSlackConditions(body.triggerConfig!.conditions),
-    };
     if (
       !(await new SlackChannelStore(ctx.db).hasCompatibleBindings(
         extractSlackChannels(body.triggerConfig),

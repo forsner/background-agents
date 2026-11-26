@@ -10,6 +10,7 @@ const {
   mockGetPermalink,
   mockAddReaction,
   mockGetMessage,
+  mockGetUserInfo,
 } = vi.hoisted(() => ({
   mockVerifySlackSignature: vi.fn(),
   mockAuthTest: vi.fn(),
@@ -17,6 +18,7 @@ const {
   mockGetPermalink: vi.fn(),
   mockAddReaction: vi.fn(),
   mockGetMessage: vi.fn(),
+  mockGetUserInfo: vi.fn(),
 }));
 
 vi.mock("@open-inspect/shared/slack", async () => {
@@ -29,6 +31,7 @@ vi.mock("@open-inspect/shared/slack", async () => {
     getPermalink: mockGetPermalink,
     addReaction: mockAddReaction,
     getMessage: mockGetMessage,
+    getUserInfo: mockGetUserInfo,
   };
 });
 
@@ -416,6 +419,7 @@ describe("reaction automation triggers (POST /events)", () => {
       ok: true,
       message: { ts: "1700000000.000100", text: "checkout is broken", user: "U999" },
     });
+    mockGetUserInfo.mockResolvedValue({ ok: true, user: { id: "U777", name: "quynh" } });
   });
 
   const forwardsFor = (env: Env) =>
@@ -439,6 +443,25 @@ describe("reaction automation triggers (POST /events)", () => {
       }),
     ]);
     expect(mockAddReaction).toHaveBeenCalledWith("xoxb-test", "C123", "1700000000.000100", "eyes");
+  });
+
+  it("marks another bot's reaction with its bot id, and drops it when the lookup fails", async () => {
+    mockGetUserInfo.mockResolvedValueOnce({
+      ok: true,
+      user: { id: "U777", name: "otherbot", is_bot: true, profile: { bot_id: "B777" } },
+    });
+    const env = makeEnv({ watched: ["C123"] });
+    const ctx = makeCtx();
+    await app.fetch(reactionRequest({}), env, ctx);
+    await flushWaitUntil(ctx);
+    expect(forwardsFor(env)).toEqual([expect.objectContaining({ botId: "B777" })]);
+
+    mockGetUserInfo.mockResolvedValueOnce({ ok: false, error: "ratelimited" });
+    const failedEnv = makeEnv({ watched: ["C123"] });
+    const failedCtx = makeCtx();
+    await app.fetch(reactionRequest({}), failedEnv, failedCtx);
+    await flushWaitUntil(failedCtx);
+    expect(forwardsFor(failedEnv)).toHaveLength(0);
   });
 
   it("acknowledges a reaction on a file without forwarding it", async () => {
