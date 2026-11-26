@@ -11,6 +11,7 @@ import {
   type TriggerConfig,
 } from "@open-inspect/shared/triggers";
 import {
+  DEFAULT_AUTOMATION_MAX_CONCURRENT_RUNS,
   MAX_AUTOMATION_NAME_LENGTH,
   validateAutomationTargetCounts,
   type Automation,
@@ -40,6 +41,10 @@ export interface AutomationFormValues {
   scheduleTz?: string;
   /** Launch retries; submitted for schedule triggers only. */
   maxRetries?: number;
+  /** Sandbox timeout override for every trigger type; null inherits. */
+  sandboxTimeoutMs?: number | null;
+  /** Firings allowed in flight at once; submitted for recurring schedule triggers only. */
+  maxConcurrentRuns?: number;
   instructions: string;
   triggerType: AutomationTriggerType;
   eventType?: string;
@@ -55,6 +60,7 @@ export interface AutomationTriggerDraft {
   scheduleOnceAt: string;
   scheduleTz: string;
   maxRetries: number;
+  maxConcurrentRuns: number;
   eventType: string;
   conditions: TriggerCondition[];
   /** Slack triggers only: let other bots' messages trigger the automation. */
@@ -66,6 +72,8 @@ export interface AutomationAgentDraft {
   harness: HarnessId;
   model: string;
   reasoningEffort: string;
+  /** Time budget override for each run; null inherits the repository's sandbox timeout. */
+  sandboxTimeoutMs: number | null;
 }
 
 export interface AutomationFormDraft {
@@ -131,6 +139,7 @@ export function createAutomationFormDraft(
         initialValues.scheduleOnceAt != null ? toLocalDateTime(initialValues.scheduleOnceAt) : "",
       scheduleTz: initialValues.scheduleTz ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
       maxRetries: initialValues.maxRetries ?? 0,
+      maxConcurrentRuns: initialValues.maxConcurrentRuns ?? DEFAULT_AUTOMATION_MAX_CONCURRENT_RUNS,
       eventType: initialValues.eventType ?? defaultEventType(initialValues.triggerType),
       conditions: initialValues.triggerConfig?.conditions ?? [],
       includeBotMessages: initialValues.triggerConfig?.slack?.includeBotMessages === true,
@@ -140,6 +149,7 @@ export function createAutomationFormDraft(
       harness,
       model: initialValues.model ?? DEFAULT_MODEL,
       reasoningEffort: initialValues.reasoningEffort ?? "",
+      sandboxTimeoutMs: initialValues.sandboxTimeoutMs ?? null,
     },
   };
 }
@@ -158,6 +168,8 @@ export function automationToFormValues(automation: Automation): InitialAutomatio
     scheduleTz: automation.scheduleTz,
     scheduleOnceAt: automation.scheduleOnceAt ?? undefined,
     maxRetries: automation.maxRetries,
+    sandboxTimeoutMs: automation.sandboxTimeoutMs,
+    maxConcurrentRuns: automation.maxConcurrentRuns,
     instructions: automation.instructions,
     triggerType: automation.triggerType,
     eventType: automation.eventType ?? undefined,
@@ -446,6 +458,7 @@ function buildSubmissionValues({
     reasoningEffort:
       effectiveReasoningEffort(draft.agent.harness, resolvedModel, draft.agent.reasoningEffort) ||
       null,
+    sandboxTimeoutMs: draft.agent.sandboxTimeoutMs,
     instructions: draft.instructions.trim(),
     triggerType: draft.trigger.type,
     providerSelections: draft.providerSelections,
@@ -457,7 +470,10 @@ function buildSubmissionValues({
       maxRetries: draft.trigger.maxRetries,
       ...(draft.trigger.scheduleMode === "once"
         ? { scheduleOnceAt }
-        : { scheduleCron: draft.trigger.scheduleCron }),
+        : {
+            scheduleCron: draft.trigger.scheduleCron,
+            maxConcurrentRuns: draft.trigger.maxConcurrentRuns,
+          }),
       scheduleTz:
         mode === "create" && draft.trigger.scheduleMode === "once"
           ? Intl.DateTimeFormat().resolvedOptions().timeZone
